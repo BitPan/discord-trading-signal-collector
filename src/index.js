@@ -7,6 +7,8 @@
 
 const logger = require('./utils/logger');
 const config = require('./config');
+const ConfigValidator = require('./config/validator');
+const APIService = require('./modules/api');
 
 /**
  * 应用启动
@@ -16,19 +18,24 @@ async function main() {
     logger.info('Starting Discord Trading Signal Collector...', {
       environment: config.nodeEnv,
       port: config.api.port,
+      database: config.database.url.substring(0, 30) + '...',
     });
 
-    // TODO: 初始化各个模块
-    // 1. Discord Collector
-    // 2. Database Service
-    // 3. Signal Parser
-    // 4. Position Manager
-    // 5. REST API
-    // 6. Health Monitor
+    // 1. 验证配置
+    ConfigValidator.validate(config);
+    ConfigValidator.checkOptional(config);
 
-    logger.info('Application started successfully');
+    // 2. 初始化数据库（可选，看是否需要自动创建表）
+    // const db = await DatabaseService.initialize();
 
-    // 保持应用运行
+    // 3. 启动 API 服务
+    await APIService.start();
+
+    logger.info('Application started successfully', {
+      modules: ['api', 'database', 'logger'],
+    });
+
+    // 4. 设置信号处理（优雅关闭）
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
   } catch (error) {
@@ -45,13 +52,14 @@ async function main() {
  */
 async function shutdown() {
   logger.info('Shutting down gracefully...');
-  
+
   try {
-    // TODO: 清理资源
-    // - 关闭 Discord 连接
-    // - 关闭数据库连接
-    // - 停止 HTTP 服务器
-    
+    // 1. 停止 API 服务
+    await APIService.stop();
+
+    // 2. 关闭数据库连接
+    // await DatabaseService.close();
+
     logger.info('Shutdown complete');
     process.exit(0);
   } catch (error) {
@@ -63,6 +71,8 @@ async function shutdown() {
 }
 
 // 启动应用
-main();
+if (require.main === module) {
+  main();
+}
 
 module.exports = main;
