@@ -1,5 +1,20 @@
 const API_BASE = '/api/v1';
 
+// 交易员名字映射表（用真实名字替代 ID）
+const TRADER_NAMES = {
+  'trader_843376150285910047': 'achen886',
+  'trader_123456789': 'trader_john',
+  'trader_987654321': 'trader_eli',
+  'trader_859894868205371392': 'trader_woods',
+  'trader_800846261707341845': 'trader_astekz'
+};
+
+// 获取交易员显示名称
+function getTraderDisplayName(traderId) {
+  return TRADER_NAMES[traderId] || (traderId ? traderId.replace('trader_', '') : '未知');
+}
+
+
 function showTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.classList.remove('active');
@@ -51,7 +66,7 @@ async function loadDashboard() {
     if (signalsData.data && signalsData.data.length > 0) {
       tbody.innerHTML = signalsData.data.map(signal => `
         <tr>
-          <td>${signal.trader ? signal.trader.substring(0, 20) : '-'}</td>
+          <td>${getTraderDisplayName(signal.trader)}</td>
           <td><strong>${signal.symbol}</strong></td>
           <td>${signal.action.toUpperCase()}</td>
           <td>${signal.entry ? parseFloat(signal.entry).toFixed(2) : '-'}</td>
@@ -101,7 +116,7 @@ async function loadSignals() {
       tbody.innerHTML = data.data.map(signal => `
         <tr>
           <td>${signal.id.substring(0, 16)}...</td>
-          <td>${signal.trader ? signal.trader.substring(0, 20) : '-'}</td>
+          <td>${getTraderDisplayName(signal.trader)}</td>
           <td><strong>${signal.symbol}</strong></td>
           <td>${signal.action.toUpperCase()}</td>
           <td>${signal.entry ? parseFloat(signal.entry).toFixed(2) : '-'}</td>
