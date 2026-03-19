@@ -8,6 +8,7 @@ const config = require('./config');
 const ConfigValidator = require('./config/validator');
 const APIService = require('./modules/api');
 const connection = require('./modules/database/connection');
+const telegramService = require('./modules/telegram/telegramService');
 
 async function main() {
   try {
@@ -23,12 +24,20 @@ async function main() {
     // 2. 初始化数据库连接
     await connection.initialize();
 
-    // 3. 启动 API 服务
+    // 3. 初始化 Telegram
+    const telegramReady = await telegramService.testConnection();
+    if (telegramReady) {
+      logger.info('✅ Telegram bot connected');
+    } else {
+      logger.warn('⚠️ Telegram not available');
+    }
+
+    // 4. 启动 API 服务
     await APIService.start();
 
     logger.info('🚀 Application started successfully');
 
-    // 4. 优雅关闭
+    // 5. 优雅关闭
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
   } catch (error) {
