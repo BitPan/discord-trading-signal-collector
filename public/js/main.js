@@ -1,23 +1,17 @@
-// API 基础 URL
 const API_BASE = '/api/v1';
 
-// 显示标签页
 function showTab(tabName) {
-  // 隐藏所有标签页
   document.querySelectorAll('.tab-content').forEach(tab => {
     tab.classList.remove('active');
   });
 
-  // 取消所有按钮的激活状态
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.remove('active');
   });
 
-  // 显示选中的标签页
   document.getElementById(tabName).classList.add('active');
   event.target.classList.add('active');
 
-  // 加载相应的数据
   switch(tabName) {
     case 'dashboard':
       loadDashboard();
@@ -31,8 +25,8 @@ function showTab(tabName) {
     case 'positions':
       loadPositions();
       break;
-    case 'traders':
-      loadTraders();
+    case 'insights':
+      loadInsights();
       break;
     case 'health':
       loadHealth();
@@ -40,37 +34,28 @@ function showTab(tabName) {
   }
 }
 
-// 加载仪表板
 async function loadDashboard() {
   try {
-    // 加载统计数据
-    const messagesRes = await fetch(`${API_BASE}/messages?limit=0`);
-    const signalsRes = await fetch(`${API_BASE}/signals?limit=0`);
-    const positionsRes = await fetch(`${API_BASE}/positions?status=open`);
-
-    const messages = await messagesRes.json();
-    const signals = await signalsRes.json();
+    const positionsRes = await fetch(`${API_BASE}/positions?limit=100`);
     const positions = await positionsRes.json();
 
-    // 更新统计卡片
-    document.getElementById('totalMessages').textContent = messages.count || 0;
-    document.getElementById('totalSignals').textContent = signals.count || 0;
-    document.getElementById('openPositions').textContent = positions.count || 0;
-    document.getElementById('totalTraders').textContent = '计算中...';
+    const openCount = positions.data ? positions.data.filter(p => p.status === 'open').length : 0;
+    document.getElementById('totalMessages').textContent = positions.count || 0;
+    document.getElementById('totalSignals').textContent = positions.count || 0;
+    document.getElementById('openPositions').textContent = openCount;
 
-    // 加载最近信号
-    const recentSignals = await fetch(`${API_BASE}/signals?limit=10`);
-    const recentData = await recentSignals.json();
+    const signalsRes = await fetch(`${API_BASE}/signals?limit=10`);
+    const signalsData = await signalsRes.json();
     
     const tbody = document.getElementById('recentSignalsBody');
-    if (recentData.data && recentData.data.length > 0) {
-      tbody.innerHTML = recentData.data.map(signal => `
+    if (signalsData.data && signalsData.data.length > 0) {
+      tbody.innerHTML = signalsData.data.map(signal => `
         <tr>
-          <td>${signal.trader || '-'}</td>
+          <td>${signal.trader ? signal.trader.substring(0, 20) : '-'}</td>
           <td><strong>${signal.symbol}</strong></td>
           <td>${signal.action.toUpperCase()}</td>
-          <td>${signal.entry ? signal.entry.toFixed(2) : '-'}</td>
-          <td>${signal.size ? signal.size.toFixed(2) : '-'}</td>
+          <td>${signal.entry ? parseFloat(signal.entry).toFixed(2) : '-'}</td>
+          <td>${signal.size ? parseFloat(signal.size).toFixed(2) : '-'}</td>
           <td>${new Date(signal.created_at).toLocaleString()}</td>
         </tr>
       `).join('');
@@ -82,7 +67,6 @@ async function loadDashboard() {
   }
 }
 
-// 加载消息
 async function loadMessages() {
   try {
     const res = await fetch(`${API_BASE}/messages?limit=100`);
@@ -107,7 +91,6 @@ async function loadMessages() {
   }
 }
 
-// 加载信号
 async function loadSignals() {
   try {
     const res = await fetch(`${API_BASE}/signals?limit=100`);
@@ -118,11 +101,11 @@ async function loadSignals() {
       tbody.innerHTML = data.data.map(signal => `
         <tr>
           <td>${signal.id.substring(0, 16)}...</td>
-          <td>${signal.trader || '-'}</td>
+          <td>${signal.trader ? signal.trader.substring(0, 20) : '-'}</td>
           <td><strong>${signal.symbol}</strong></td>
           <td>${signal.action.toUpperCase()}</td>
-          <td>${signal.entry ? signal.entry.toFixed(2) : '-'}</td>
-          <td>${signal.size ? signal.size.toFixed(2) : '-'}</td>
+          <td>${signal.entry ? parseFloat(signal.entry).toFixed(2) : '-'}</td>
+          <td>${signal.size ? parseFloat(signal.size).toFixed(2) : '-'}</td>
           <td>${signal.type}</td>
           <td>${new Date(signal.created_at).toLocaleString()}</td>
         </tr>
@@ -135,7 +118,6 @@ async function loadSignals() {
   }
 }
 
-// 加载仓位
 async function loadPositions() {
   try {
     const status = document.getElementById('positionStatusFilter').value;
@@ -151,13 +133,13 @@ async function loadPositions() {
       tbody.innerHTML = data.data.map(pos => `
         <tr>
           <td>${pos.id.substring(0, 16)}...</td>
-          <td>${pos.trader || '-'}</td>
+          <td>${pos.trader ? pos.trader.substring(0, 20) : '-'}</td>
           <td><strong>${pos.symbol}</strong></td>
           <td>${getStatusBadge(pos.status)}</td>
-          <td>${pos.entry ? pos.entry.toFixed(2) : '-'}</td>
-          <td>${pos.size ? pos.size.toFixed(2) : '-'}</td>
-          <td>${pos.pnl ? pos.pnl.toFixed(2) : '-'}</td>
-          <td>${pos.pnl_percent ? pos.pnl_percent.toFixed(2) + '%' : '-'}</td>
+          <td>${pos.entry ? parseFloat(pos.entry).toFixed(2) : '-'}</td>
+          <td>${pos.size ? parseFloat(pos.size).toFixed(2) : '-'}</td>
+          <td>${pos.pnl ? parseFloat(pos.pnl).toFixed(2) : '-'}</td>
+          <td>${pos.pnl_percent ? parseFloat(pos.pnl_percent).toFixed(2) + '%' : '-'}</td>
           <td>${new Date(pos.created_at).toLocaleString()}</td>
         </tr>
       `).join('');
@@ -169,39 +151,46 @@ async function loadPositions() {
   }
 }
 
-// 加载交易员
-async function loadTraders() {
+async function loadInsights() {
   try {
-    const res = await fetch(`${API_BASE}/traders`);
+    const res = await fetch(`${API_BASE}/insights`);
     const data = await res.json();
     
-    const tbody = document.getElementById('tradersBody');
-    if (data.data && data.data.length > 0) {
-      tbody.innerHTML = data.data.map(trader => `
-        <tr>
-          <td>${trader.id}</td>
-          <td>${trader.username || '-'}</td>
-          <td>${trader.total_positions || 0}</td>
-          <td>${trader.win_rate || '0%'}</td>
-          <td>${trader.total_pnl ? trader.total_pnl.toFixed(2) : '0'}</td>
-          <td>${trader.avg_pnl ? trader.avg_pnl.toFixed(2) : '0'}</td>
-        </tr>
-      `).join('');
+    const container = document.getElementById('insightsContainer');
+    if (data.data && Object.keys(data.data).length > 0) {
+      let html = '';
+      for (const [trader, summary] of Object.entries(data.data)) {
+        html += `
+          <div class="insight-card">
+            <h3>👤 ${trader}</h3>
+            <div class="insight-content">
+              <p><strong>交易对：</strong> ${summary.symbols.join(', ')}</p>
+              <p><strong>操作类型：</strong> ${summary.actions.join(', ')}</p>
+              <p><strong>信号数量：</strong> ${summary.signal_count}</p>
+              <p><strong>行情见解：</strong></p>
+              <div class="insight-text">${summary.summary}</div>
+              <p><small>最后更新：${new Date(summary.last_signal).toLocaleString()}</small></p>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
     } else {
-      tbody.innerHTML = '<tr><td colspan="6">暂无交易员</td></tr>';
+      container.innerHTML = '<div class="loading">暂无数据</div>';
     }
   } catch (error) {
-    console.error('加载交易员失败:', error);
+    console.error('加载行情总结失败:', error);
+    document.getElementById('insightsContainer').innerHTML = `
+      <div class="error-message">加载失败: ${error.message}</div>
+    `;
   }
 }
 
-// 加载系统健康状态
 async function loadHealth() {
   try {
     const res = await fetch(`${API_BASE}/health`);
     const data = await res.json();
     
-    // 更新系统模块状态（模拟）
     document.getElementById('discordStatus').textContent = '✅ 正常';
     document.getElementById('discordStatus').className = 'health-status ok';
     
@@ -214,7 +203,6 @@ async function loadHealth() {
     document.getElementById('telegramStatus').textContent = '⚠️ 未配置';
     document.getElementById('telegramStatus').className = 'health-status unknown';
     
-    // 更新系统信息
     const info = `
 系统状态: ${data.status}
 运行时间: ${Math.floor(data.uptime)} 秒
@@ -230,7 +218,6 @@ Node.js: ${process.version}
   }
 }
 
-// 筛选函数
 function filterMessages() {
   loadMessages();
 }
@@ -243,7 +230,6 @@ function filterPositions() {
   loadPositions();
 }
 
-// 获取状态徽章
 function getStatusBadge(status) {
   const badges = {
     'pending': '⏳ 待确认',
@@ -254,10 +240,7 @@ function getStatusBadge(status) {
   return badges[status] || status;
 }
 
-// 页面加载完成时加载仪表板
 document.addEventListener('DOMContentLoaded', function() {
   loadDashboard();
-  
-  // 每 30 秒自动刷新仪表板
   setInterval(loadDashboard, 30000);
 });

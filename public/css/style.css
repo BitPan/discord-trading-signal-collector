@@ -275,3 +275,54 @@ body {
     padding: 8px;
   }
 }
+
+/* 行情总结卡片 */
+.insights-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.insight-card {
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.insight-card h3 {
+  color: #667eea;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.insight-content p {
+  margin: 10px 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.insight-content strong {
+  color: #667eea;
+}
+
+.insight-text {
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 10px 0;
+  line-height: 1.6;
+  border-left: 4px solid #667eea;
+  font-size: 13px;
+  color: #555;
+}
+
+.insight-text small {
+  display: block;
+  margin-top: 8px;
+  color: #999;
+  font-style: italic;
+}
