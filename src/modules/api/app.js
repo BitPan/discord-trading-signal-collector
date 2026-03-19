@@ -5,6 +5,8 @@
 const express = require('express');
 const requestLogger = require('../../utils/requestLogger');
 const { errorHandler, notFoundHandler } = require('../../utils/errorHandler');
+const positionsRouter = require('./routes/positions');
+const signalsRouter = require('./routes/signals');
 
 /**
  * 创建 Express 应用
@@ -25,6 +27,10 @@ function createApp() {
       uptime: process.uptime(),
     });
   });
+
+  // API 路由
+  app.use('/api/v1/positions', positionsRouter);
+  app.use('/api/v1/signals', signalsRouter);
 
   // 404 处理
   app.use(notFoundHandler);

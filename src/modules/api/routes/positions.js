@@ -1,0 +1,136 @@
+/**
+ * 仓位 API 路由
+ */
+
+const router = require('express').Router();
+const PositionRepository = require('../../database/repositories/PositionRepository');
+const PositionService = require('../../position');
+const { asyncHandler } = require('../../../utils/errorHandler');
+
+/**
+ * GET /api/v1/positions - 获取仓位列表
+ */
+router.get('/', asyncHandler(async (req, res) => {
+  const { trader, status, limit = 50, offset = 0 } = req.query;
+
+  let positions;
+
+  if (status) {
+    positions = await PositionRepository.findByStatus(status, {
+      trader,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+  } else if (trader) {
+    positions = await PositionRepository.findByTrader(trader, {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+  } else {
+    // 获取所有仓位
+    positions = await PositionRepository.findByStatus('open', {
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+  }
+
+  res.json({
+    success: true,
+    data: positions,
+    count: positions.length,
+  });
+}));
+
+/**
+ * GET /api/v1/positions/:id - 获取单个仓位
+ */
+router.get('/:id', asyncHandler(async (req, res) => {
+  const position = await PositionRepository.findById(req.params.id);
+
+  if (!position) {
+    return res.status(404).json({
+      success: false,
+      error: {
+        code: 'POSITION_NOT_FOUND',
+        message: 'Position not found',
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    data: position,
+  });
+}));
+
+/**
+ * POST /api/v1/positions/:id/open - 打开仓位
+ */
+router.post('/:id/open', asyncHandler(async (req, res) => {
+  const { confirmPrice } = req.body;
+
+  const position = await PositionService.open(req.params.id, confirmPrice);
+
+  if (!position) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_POSITION_STATE',
+        message: 'Cannot open position from current state',
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    data: position,
+  });
+}));
+
+/**
+ * POST /api/v1/positions/:id/close - 平仓
+ */
+router.post('/:id/close', asyncHandler(async (req, res) => {
+  const { exitPrice } = req.body;
+
+  if (!exitPrice) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'MISSING_FIELD',
+        message: 'exitPrice is required',
+      },
+    });
+  }
+
+  const position = await PositionService.close(req.params.id, exitPrice);
+
+  if (!position) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_POSITION_STATE',
+        message: 'Cannot close position from current state',
+      },
+    });
+  }
+
+  res.json({
+    success: true,
+    data: position,
+  });
+}));
+
+/**
+ * GET /api/v1/positions/trader/:trader/stats - 获取交易员统计
+ */
+router.get('/trader/:trader/stats', asyncHandler(async (req, res) => {
+  const stats = await PositionService.getStats(req.params.trader);
+
+  res.json({
+    success: true,
+    data: stats,
+  });
+}));
+
+module.exports = router;
