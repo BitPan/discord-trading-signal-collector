@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Trading Signal Collector</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🎯 Discord Trading Signal Collector</h1>
+      <p>7×24 交易信号收集和分析系统</p>
+    </header>
+
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showTab('dashboard')">📊 仪表板</button>
+      <button class="nav-btn" onclick="showTab('messages')">📨 消息</button>
+      <button class="nav-btn" onclick="showTab('signals')">🎯 信号</button>
+      <button class="nav-btn" onclick="showTab('positions')">📍 仓位</button>
+      <button class="nav-btn" onclick="showTab('traders')">👤 交易员</button>
+      <button class="nav-btn" onclick="showTab('health')">❤️ 系统</button>
+    </nav>
+
+    <!-- 仪表板 -->
+    <div id="dashboard" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalMessages">-</div>
+          <div class="stat-label">消息总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalSignals">-</div>
+          <div class="stat-label">信号总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="openPositions">-</div>
+          <div class="stat-label">活跃仓位</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalTraders">-</div>
+          <div class="stat-label">活跃交易员</div>
+        </div>
+      </div>
+
+      <div class="recent-section">
+        <h3>📊 最近的信号</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>交易员</th>
+              <th>交易对</th>
+              <th>操作</th>
+              <th>入场价</th>
+              <th>仓位</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody id="recentSignalsBody">
+            <tr><td colspan="6" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 消息页面 -->
+    <div id="messages" class="tab-content">
+      <div class="filter-bar">
+        <input type="text" id="messageChannelFilter" placeholder="频道 ID 筛选...">
+        <button onclick="filterMessages()">🔍 筛选</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>消息 ID</th>
+            <th>发送者</th>
+            <th>频道</th>
+            <th>内容</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody id="messagesBody">
+          <tr><td colspan="5" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 信号页面 -->
+    <div id="signals" class="tab-content">
+      <div class="filter-bar">
+        <input type="text" id="signalTraderFilter" placeholder="交易员筛选...">
+        <button onclick="filterSignals()">🔍 筛选</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>信号 ID</th>
+            <th>交易员</th>
+            <th>交易对</th>
+            <th>操作</th>
+            <th>入场价</th>
+            <th>仓位</th>
+            <th>类型</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody id="signalsBody">
+          <tr><td colspan="8" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 仓位页面 -->
+    <div id="positions" class="tab-content">
+      <div class="filter-bar">
+        <select id="positionStatusFilter" onchange="filterPositions()">
+          <option value="">所有状态</option>
+          <option value="pending">待确认</option>
+          <option value="open">持仓中</option>
+          <option value="closed">已平仓</option>
+        </select>
+        <button onclick="filterPositions()">🔍 筛选</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>仓位 ID</th>
+            <th>交易员</th>
+            <th>交易对</th>
+            <th>状态</th>
+            <th>入场价</th>
+            <th>仓位</th>
+            <th>PnL</th>
+            <th>PnL %</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody id="positionsBody">
+          <tr><td colspan="9" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 交易员页面 -->
+    <div id="traders" class="tab-content">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>交易员 ID</th>
+            <th>用户名</th>
+            <th>总仓位</th>
+            <th>胜率</th>
+            <th>总 PnL</th>
+            <th>平均 PnL</th>
+          </tr>
+        </thead>
+        <tbody id="tradersBody">
+          <tr><td colspan="6" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 系统状态页面 -->
+    <div id="health" class="tab-content">
+      <div class="health-grid">
+        <div class="health-card">
+          <div class="health-name">Discord</div>
+          <div class="health-status" id="discordStatus">-</div>
+        </div>
+        <div class="health-card">
+          <div class="health-name">数据库</div>
+          <div class="health-status" id="databaseStatus">-</div>
+        </div>
+        <div class="health-card">
+          <div class="health-name">解析器</div>
+          <div class="health-status" id="parserStatus">-</div>
+        </div>
+        <div class="health-card">
+          <div class="health-name">Telegram</div>
+          <div class="health-status" id="telegramStatus">-</div>
+        </div>
+      </div>
+
+      <div class="health-details">
+        <h3>系统信息</h3>
+        <div id="healthInfo" class="info-box">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

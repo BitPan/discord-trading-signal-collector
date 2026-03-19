@@ -36,17 +36,17 @@ describe('API Endpoints', () => {
   describe('API Routes', () => {
     it('should have positions route available', () => {
       expect(app._router.stack.some(
-        layer => layer.route && layer.route.path === '/api/v1/positions'
+        layer => layer.route && layer.route.path === '/api/v1/positions',
       ) || app._router.stack.some(
-        layer => layer.name === 'router' && layer.regexp.test('/api/v1/positions')
+        layer => layer.name === 'router' && layer.regexp.test('/api/v1/positions'),
       )).toBe(true);
     });
 
     it('should have signals route available', () => {
       expect(app._router.stack.some(
-        layer => layer.route && layer.route.path === '/api/v1/signals'
+        layer => layer.route && layer.route.path === '/api/v1/signals',
       ) || app._router.stack.some(
-        layer => layer.name === 'router' && layer.regexp.test('/api/v1/signals')
+        layer => layer.name === 'router' && layer.regexp.test('/api/v1/signals'),
       )).toBe(true);
     });
   });
