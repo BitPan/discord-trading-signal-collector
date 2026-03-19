@@ -11,6 +11,7 @@ const signalsRouter = require('./routes/signals');
 const messagesRouter = require('./routes/messages');
 const tradersRouter = require('./routes/traders');
 const insightsRouter = require('./routes/insights');
+const syncRouter = require('./routes/sync');
 
 /**
  * 创建 Express 应用
@@ -42,6 +43,7 @@ function createApp() {
   app.use('/api/v1/messages', messagesRouter);
   app.use('/api/v1/traders', tradersRouter);
   app.use('/api/v1/insights', insightsRouter);
+  app.use('/api/v1/sync', syncRouter);
 
   // 首页路由
   app.get('/', (req, res) => {
