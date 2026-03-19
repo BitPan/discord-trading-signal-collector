@@ -387,3 +387,130 @@ router.put('/:id/activate', asyncHandler(async (req, res) => {
     data: updatedPosition
   });
 }));
+
+/**
+ * PUT /api/v1/positions/:id/move-sl-to-be - 将止损移至保本价格
+ * 
+ * 功能：将 SL 移至入场价（break even）
+ * 场景：仓位已盈利，为了保护利润，把止损移到入场价
+ * 
+ * 例如：
+ * - 买入 BTC: 45000
+ * - 当前价：46000（已赚 1000）
+ * - Move SL to BE → SL 变为 45000（保本）
+ */
+router.put('/:id/move-sl-to-be', asyncHandler(async (req, res) => {
+  const positionId = req.params.id;
+  const connection = require('../../database/connection');
+  const logger = require('../../../utils/logger');
+
+  try {
+    // 获取当前仓位
+    const getResult = await connection.query(
+      'SELECT * FROM positions WHERE id = $1',
+      [positionId]
+    );
+
+    if (getResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Position not found'
+      });
+    }
+
+    const position = getResult.rows[0];
+
+    // 验证仓位状态
+    if (position.status !== 'open') {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot move SL on ${position.status} position`
+      });
+    }
+
+    // 计算 BE 价格 = 入场价
+    const bePrice = parseFloat(position.entry);
+
+    // 获取当前价格（从 mark_price 或最后一次同步的价格）
+    const currentPrice = req.body.current_price || parseFloat(position.exit) || parseFloat(position.entry);
+
+    // 验证逻辑：只能在盈利时移动 SL 到 BE
+    const isProfitable = 
+      (position.sl === null) || 
+      (parseFloat(position.sl) < bePrice); // 原 SL 低于 BE
+
+    if (!isProfitable) {
+      return res.status(400).json({
+        success: false,
+        error: 'Position must be profitable or have room to move SL to BE',
+        details: {
+          entry: position.entry,
+          current: currentPrice,
+          old_sl: position.sl
+        }
+      });
+    }
+
+    // 构建 metadata 记录这个操作
+    const oldMetadata = position.metadata ? JSON.parse(position.metadata) : {};
+    const newMetadata = {
+      ...oldMetadata,
+      sl_history: [
+        ...(oldMetadata.sl_history || []),
+        {
+          action: 'move_sl_to_be',
+          old_sl: position.sl,
+          new_sl: bePrice,
+          timestamp: new Date().toISOString(),
+          reason: 'Manual SL adjustment to break even'
+        }
+      ],
+      last_sl_adjustment: new Date().toISOString()
+    };
+
+    // 更新仓位：SL 改为 BE 价格
+    const updateResult = await connection.query(
+      `UPDATE positions 
+       SET sl = $1,
+           metadata = $2,
+           updated_at = NOW() 
+       WHERE id = $3 
+       RETURNING *`,
+      [bePrice, JSON.stringify(newMetadata), positionId]
+    );
+
+    const updatedPosition = updateResult.rows[0];
+
+    logger.info('SL moved to break even', {
+      positionId,
+      entry: position.entry,
+      old_sl: position.sl,
+      new_sl: bePrice,
+      symbol: position.symbol
+    });
+
+    res.json({
+      success: true,
+      data: {
+        id: updatedPosition.id,
+        symbol: updatedPosition.symbol,
+        trader: updatedPosition.trader,
+        entry: updatedPosition.entry,
+        sl: updatedPosition.sl,  // 现在等于 entry
+        action: 'move_sl_to_be',
+        message: `SL moved to BE (${bePrice})`
+      }
+    });
+
+  } catch (error) {
+    logger.error('Failed to move SL to BE', {
+      error: error.message,
+      positionId
+    });
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}));

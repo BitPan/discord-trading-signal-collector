@@ -745,3 +745,214 @@ class HyperliquidAdapter {
 **设计完成于：2026-03-19 21:25 GMT+11**
 **下一步：实现 Phase 1 基础设施**
 
+
+---
+
+## 🎯 附加功能：Move SL to Break Even
+
+### 概述
+
+支持快速将止损移至保本价格（入场价）。这是交易员在仓位已盈利时常见的操作。
+
+### 使用场景
+
+```
+交易员说：
+"Move stop to BE"
+
+系统执行：
+1. 查询入场价 = 45000
+2. 将 SL 更新为 45000
+3. 发送确认："SL moved to BE at 45000"
+
+结果：
+- 即使止损触发，也只是保本
+- 保护已赚取的利润
+```
+
+### API 端点
+
+```javascript
+// 移动止损到保本价格
+PUT /api/v1/positions/:id/move-sl-to-be
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "pos_001",
+    "symbol": "BTCUSD",
+    "trader": "trader_eli",
+    "entry": 45000,
+    "sl": 45000,      // 现在等于 entry（保本）
+    "action": "move_sl_to_be",
+    "message": "SL moved to BE (45000)"
+  }
+}
+```
+
+### 跟单系统集成
+
+在跟单仓位上也支持此操作：
+
+```javascript
+// 跟单仓位的 SL 也能移到 BE
+PUT /api/v1/copy-trading/positions/:id/move-sl-to-be
+
+当跟单的源仓位执行 "Move SL to BE" 时：
+1. 自动检测源仓位的 SL 变化
+2. 自动在跟单仓位上执行相同操作
+3. 发送 Telegram 通知
+4. 记录完整的历史
+```
+
+### 技术实现
+
+#### 数据库记录
+
+```javascript
+{
+  id: "pos_001",
+  sl: 45000,           // 更新后的值
+  metadata: {
+    sl_history: [
+      {
+        action: "move_sl_to_be",
+        old_sl: null,
+        new_sl: 45000,
+        timestamp: "2026-03-19T10:34:04.968Z",
+        reason: "Manual SL adjustment to break even"
+      }
+    ],
+    last_sl_adjustment: "2026-03-19T10:34:04.969Z"
+  }
+}
+```
+
+#### 修改历史追踪
+
+SL 的所有修改都记录在 `metadata.sl_history` 中：
+- 原 SL 值
+- 新 SL 值
+- 修改时间
+- 修改原因
+
+#### 自动同步机制
+
+跟单系统自动检测源仓位的 SL 变化：
+
+```javascript
+// 仓位同步服务
+async function syncPosition(copyPosition) {
+  const source = await getSourcePosition(copyPosition.source_position_id);
+  
+  // 检查 SL 是否变化
+  if (source.sl !== copyPosition.sl) {
+    if (source.sl === source.entry) {
+      // 源仓位移动了 SL 到 BE
+      // 跟单仓位也执行相同操作
+      await moveSlToBE(copyPosition.id);
+      
+      // 发送 Telegram 通知
+      await telegram.notify('SL moved to BE', {
+        trader: source.trader,
+        symbol: copyPosition.symbol,
+        be_price: source.entry
+      });
+    }
+  }
+}
+```
+
+### Telegram 通知
+
+```
+✅ SL 已移至保本
+━━━━━━━━━━━━━━━━━━━━━
+交易员: trader_eli
+交易对: BTC-USDT
+入场价: 45000
+止损: 45000 (BE)
+当前价: 46000 (+1000)
+
+仓位现已保护，触发止损时保本
+```
+
+### 跟单系统中的应用
+
+#### 配置选项
+
+```javascript
+{
+  id: "config_001",
+  // ... 其他配置
+  
+  auto_follow_sl_adjustments: true,    // 自动跟随 SL 调整
+  sl_adjustment_delay_ms: 0,           // 延迟（0 = 立即执行）
+  notify_on_sl_adjustment: true        // 调整时发送通知
+}
+```
+
+#### 工作流程
+
+```
+源交易员执行: "Move stop to BE"
+    ↓
+本地系统检测 SL 变化
+    ↓
+CopyTradingService 识别
+    ↓
+【决策】
+  ✅ auto_follow_sl_adjustments = true
+    → 自动在跟单仓位执行相同操作
+    → 发送 Telegram 通知
+  
+  ❌ auto_follow_sl_adjustments = false
+    → 仅记录，不自动执行
+    → 需要手动审批
+```
+
+### 数据完整性
+
+每次 SL 调整都记录完整的审计信息：
+
+```javascript
+{
+  action: "move_sl_to_be",
+  old_sl: null,
+  new_sl: 45000,
+  source_price: 46000,      // 当时的市场价格
+  reason: "Manual adjustment",
+  timestamp: "2026-03-19T10:34:04Z",
+  executed_by: "system",
+  
+  // 跟单系统额外字段
+  source_position_id: "pos_001",
+  copy_position_id: "copy_pos_001",
+  auto_executed: true
+}
+```
+
+### 限制和验证
+
+```javascript
+✅ 可以执行 Move SL to BE：
+  • 仓位状态 = open
+  • 原 SL 为空 或 原 SL < 入场价
+  • 仓位未平仓
+
+❌ 不能执行：
+  • 仓位已平仓
+  • 仓位处于 pending 状态
+  • 无法获取入场价
+```
+
+### 未来扩展
+
+- [ ] 支持 "Move TP to BE" 的变体
+- [ ] 支持其他 SL 调整模式（如 Trailing SL）
+- [ ] SL 调整的预测分析
+- [ ] 历史 SL 调整的统计分析
+
+---
+
