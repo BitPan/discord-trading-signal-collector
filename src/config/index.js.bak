@@ -20,7 +20,7 @@ const config = {
     channelLabels: (process.env.DISCORD_CHANNEL_LABELS || '').split(',').filter(c => c),
     // 同步配置
     syncHistoryDays: parseInt(process.env.DISCORD_SYNC_HISTORY_DAYS) || 30,
-    syncIntervalSeconds: parseInt(process.env.DISCORD_SYNC_INTERVAL_SECONDS) || 10, // ⚡ 改为 10 秒（延迟从 30s → 5-7s）
+    syncIntervalSeconds: parseInt(process.env.DISCORD_SYNC_INTERVAL_SECONDS) || 60,
     messageBatchSize: parseInt(process.env.DISCORD_MESSAGE_BATCH_SIZE) || 100,
   },
 
