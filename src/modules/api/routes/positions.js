@@ -134,3 +134,56 @@ router.get('/trader/:trader/stats', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+
+/**
+ * PUT /api/v1/positions/:id/activate - 激活仓位（pending → active）
+ */
+router.put('/:id/activate', asyncHandler(async (req, res) => {
+  const positionId = req.params.id;
+  const logger = require('../../../utils/logger');
+  const connection = require('../../database/connection');
+
+  // 获取当前仓位
+  const getResult = await connection.query(
+    'SELECT * FROM positions WHERE id = $1',
+    [positionId]
+  );
+
+  if (getResult.rows.length === 0) {
+    return res.status(404).json({
+      success: false,
+      error: 'Position not found'
+    });
+  }
+
+  const position = getResult.rows[0];
+
+  if (position.order_type === 'active') {
+    return res.status(400).json({
+      success: false,
+      error: 'Position is already active'
+    });
+  }
+
+  // 更新仓位为 active
+  const updateResult = await connection.query(
+    `UPDATE positions 
+     SET order_type = 'active', status = 'open', updated_at = NOW() 
+     WHERE id = $1 
+     RETURNING *`,
+    [positionId]
+  );
+
+  const updatedPosition = updateResult.rows[0];
+
+  logger.info('Position activated', { 
+    positionId, 
+    orderType: updatedPosition.order_type,
+    status: updatedPosition.status 
+  });
+
+  res.json({
+    success: true,
+    data: updatedPosition
+  });
+}));
