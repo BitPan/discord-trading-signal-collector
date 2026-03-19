@@ -34,3 +34,5 @@ build/
 # Database
 *.db
 *.sqlite
+data/postgres/
+logs/
