@@ -326,3 +326,40 @@ body {
   color: #999;
   font-style: italic;
 }
+
+/* 订单类型样式 */
+.order-active {
+  background-color: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.order-pending {
+  background-color: #FF9800;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.order-default {
+  background-color: #999;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  display: inline-block;
+}
+
+.small {
+  font-size: 0.8em;
+  display: block;
+  margin-top: 4px;
+  color: #666;
+}

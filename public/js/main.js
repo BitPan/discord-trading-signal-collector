@@ -14,6 +14,16 @@ function getTraderDisplayName(traderId) {
   return TRADER_NAMES[traderId] || (traderId ? traderId.replace('trader_', '') : '未知');
 }
 
+// 获取订单类型的显示文本和样式
+function getOrderTypeDisplay(orderType) {
+  const types = {
+    'active': { text: '激活订单 ✅', class: 'order-active' },
+    'pending': { text: '挂单 ⏳', class: 'order-pending' }
+  };
+  return types[orderType] || { text: orderType, class: 'order-default' };
+}
+
+
 
 function showTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => {
