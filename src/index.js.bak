@@ -9,7 +9,6 @@ const ConfigValidator = require('./config/validator');
 const APIService = require('./modules/api');
 const connection = require('./modules/database/connection');
 const telegramService = require('./modules/telegram/telegramService');
-const discordClient = require('./modules/discord');
 
 async function main() {
   try {
@@ -33,24 +32,12 @@ async function main() {
       logger.warn('⚠️ Telegram not available');
     }
 
-    // 4. 初始化 Discord 连接（关键！这是之前缺失的）
-    try {
-      await discordClient.initialize();
-      logger.info('✅ Discord client connected - now listening for signals');
-    } catch (error) {
-      logger.error('⚠️ Discord client failed to connect', {
-        error: error.message,
-      });
-      logger.warn('Signals will not be received. Check Discord token and network connection.');
-      // Discord 连接失败不阻止应用启动，但会影响信号接收
-    }
-
-    // 5. 启动 API 服务
+    // 4. 启动 API 服务
     await APIService.start();
 
     logger.info('🚀 Application started successfully');
 
-    // 6. 优雅关闭
+    // 5. 优雅关闭
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
   } catch (error) {
@@ -67,12 +54,6 @@ async function shutdown() {
   try {
     await APIService.stop();
     await connection.close();
-    
-    // 关闭 Discord 连接
-    if (discordClient && discordClient.disconnect) {
-      await discordClient.disconnect();
-    }
-    
     logger.info('Shutdown complete');
     process.exit(0);
   } catch (error) {
