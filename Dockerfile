@@ -1,16 +1,24 @@
 FROM node:18-alpine
 
+# 设置工作目录
 WORKDIR /app
 
+# 复制 package 文件
 COPY package*.json ./
-RUN npm ci --only=production
 
+# 安装依赖
+RUN npm ci --only=production && \
+    npm install --save-dev jest eslint
+
+# 复制应用代码
 COPY . .
 
-ENV NODE_ENV=production
+# 暴露端口
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/v1/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/v1/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-CMD ["node", "src/index.js"]
+# 启动应用
+CMD ["npm", "start"]
