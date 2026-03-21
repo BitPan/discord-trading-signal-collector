@@ -29,7 +29,7 @@ class TokenAutoRefreshService {
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage', // 减少内存使用
+          '--disable-dev-shm-usage',
         ],
       });
 
@@ -60,17 +60,15 @@ class TokenAutoRefreshService {
       // 点击登录按钮
       await page.click('button[type="submit"]');
 
-      // 等待登录完成（可能需要检查 2FA）
+      // 等待登录完成
       logger.info('Waiting for login to complete...');
 
-      // 等待重定向到主页或 2FA 页面
       try {
         await page.waitForNavigation({
           waitUntil: 'networkidle2',
           timeout: 15000,
         });
       } catch (error) {
-        // 有时候不会有导航事件，继续处理
         logger.warn('Navigation timeout (可能需要 2FA)', { error: error.message });
       }
 
@@ -87,7 +85,6 @@ class TokenAutoRefreshService {
         logger.warn('⚠️ Two-Factor Authentication required!');
         logger.warn('请手动完成 2FA 认证，然后重新运行此脚本');
 
-        // 等待用户完成 2FA（超时 5 分钟）
         try {
           await page.waitForNavigation({
             waitUntil: 'networkidle2',
@@ -102,7 +99,7 @@ class TokenAutoRefreshService {
       }
 
       // 等待页面完全加载
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       logger.info('Extracting token from localStorage...');
 
@@ -113,7 +110,6 @@ class TokenAutoRefreshService {
           if (!tokenData) {
             throw new Error('Token not found in localStorage');
           }
-          // Token 存储为 JSON 字符串（带引号）
           return JSON.parse(tokenData);
         } catch (error) {
           console.error('Error extracting token:', error);

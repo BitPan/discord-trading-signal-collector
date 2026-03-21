@@ -10,6 +10,7 @@ const APIService = require('./modules/api');
 const connection = require('./modules/database/connection');
 const telegramService = require('./modules/telegram/telegramService');
 const discordClient = require('./modules/discord');
+const tokenHealthCheck = require('./modules/discord/tokenHealthCheck');
 
 async function main() {
   try {
@@ -33,7 +34,10 @@ async function main() {
       logger.warn('⚠️ Telegram not available');
     }
 
-    // 4. 初始化 Discord 连接（关键！这是之前缺失的）
+    // 4. 启动 Token 健康检查
+    await tokenHealthCheck.startHealthCheck();
+
+    // 5. 初始化 Discord 连接（关键！这是之前缺失的）
     try {
       await discordClient.initialize();
       logger.info('✅ Discord client connected - now listening for signals');
@@ -45,12 +49,12 @@ async function main() {
       // Discord 连接失败不阻止应用启动，但会影响信号接收
     }
 
-    // 5. 启动 API 服务
+    // 6. 启动 API 服务
     await APIService.start();
 
     logger.info('🚀 Application started successfully');
 
-    // 6. 优雅关闭
+    // 7. 优雅关闭
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
   } catch (error) {
